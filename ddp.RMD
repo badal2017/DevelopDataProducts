@@ -1,0 +1,68 @@
+---
+title: "R Markdown and Leaflet"
+author: "Badal Chowdhury"
+date: "July 10, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+In this project, I develop a web page (HTML) using R Markdown that features a map created with Leaflet. The following chunk of R code clears environment variables and loads the leaflet and rgdal libraries.
+
+```{r}
+rm(list = ls()) # clear all environment variables
+suppressPackageStartupMessages(library(leaflet))
+suppressPackageStartupMessages(library(rgdal))
+```
+The dataset is then downloaded and reads the OGR data source into a Spatial vector object (countries).
+
+```{r}
+resource <- "https://raw.githubusercontent.com/datasets/geo-boundaries-world-110m/master/countries.geojson"
+download.file(url = resource, destfile = "countries.geojson")
+countries <- readOGR("countries.geojson", "OGRGeoJSON")
+```
+Leaflet commands are used to render a world map base layer, and prepare color palettes for GDP and population layers.
+
+```{r}
+map <- leaflet(countries) %>% addTiles(group = "Layers:")
+gdpColors <- colorQuantile("Greens", countries$gdp_md_est, n = 5)
+popColors <- colorQuantile("Blues", countries$pop_est, n = 5)
+```
+
+GDP and population heatmaps are added to the base map along with their legends.
+
+```{r}
+map %>% addPolygons(
+            stroke = FALSE,
+            smoothFactor = 0.2,
+            fillOpacity = 1,
+            color =  ~ gdpColors(gdp_md_est),
+            group = "GDP"
+  ) %>% addPolygons(
+            stroke = FALSE,
+            smoothFactor = 0.2,
+            fillOpacity = 1,
+            color = ~ popColors(pop_est),
+            group = "Population"
+  ) %>% addLegend(
+            "bottomright",
+            pal = gdpColors,
+            values = ~ gdp_md_est,
+            title = "GDP",
+            opacity = 1
+  ) %>% addLegend(
+            "bottomright",
+            pal = popColors,
+            values = ~ pop_est,
+            title = "Population",
+            opacity = 1
+  ) %>% addLayersControl(
+            baseGroups = c("Layers:"),
+            overlayGroups = c("GDP", "Population"),
+            options = layersControlOptions(collapsed = FALSE)
+  )
+```
+
+
+
